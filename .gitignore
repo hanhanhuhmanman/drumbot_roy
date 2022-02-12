@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Training data
+data/*/*
+!data/.gitkeep
+!data/groove/.gitkeep
+!data/lakh/.gitkeep

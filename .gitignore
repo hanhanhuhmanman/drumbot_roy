@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # Training data
-data/*/*
-!data/.gitkeep
+data/groove/*
+data/lakh/*
 !data/groove/.gitkeep
 !data/lakh/.gitkeep

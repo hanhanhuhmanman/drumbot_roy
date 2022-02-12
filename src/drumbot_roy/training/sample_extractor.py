@@ -12,12 +12,11 @@ class SampleExtractor:
             bars_per_sample: int = 2
     ):
         self.bars_per_sample = bars_per_sample
-        pass
 
     def extract_samples(
             self,
             midi_obj: MidiFile,
-    ):
+    ) -> List[MidiFile]:
         samples = []
 
         if len(midi_obj.time_signature_changes) == 0:

@@ -44,5 +44,4 @@ class SampleExtractor:
         time_sig_at_tick = time_signatures[0]
         for time_sig in time_signatures[1:]:
             if tick >= time_sig.time:
-                time_sig_at_tick = time_sig
-        return time_sig_at_tick
+                return time_sig_at_tick

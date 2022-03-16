@@ -10,6 +10,8 @@ miditoolkit = "^0.1.15"
 miditok = "^1.1.8"
 scipy = "^1.8.0"
 matplotlib = "^3.5.1"
+torch = "^1.11.0"
+tqdm = "^4.63.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

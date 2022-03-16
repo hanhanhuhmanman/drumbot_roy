@@ -5,7 +5,7 @@ from typing import List, Optional, Generator
 
 import miditoolkit.midi.parser as midi_parser
 from miditoolkit.midi.parser import MidiFile
-from miditoolkit.midi.containers import TimeSignature
+from miditoolkit.midi.containers import TimeSignature, Instrument
 
 from src.drumbot_roy.training.drum_sample_dataset import RawSample
 
@@ -17,7 +17,10 @@ class SampleExtractor:
         self.bars_per_sample = bars_per_sample
 
     def extract_samples(
-        self, midi_file_path: Path, midi_obj: Optional[MidiFile] = None
+        self,
+        midi_file_path: Path,
+        midi_obj: Optional[MidiFile] = None,
+        only_drum: bool = False,
     ) -> Generator[RawSample, None, None]:
         if midi_obj is None:
             try:
@@ -29,6 +32,13 @@ class SampleExtractor:
         if len(midi_obj.time_signature_changes) == 0:
             return None
 
+        if only_drum:
+            midi_obj.instruments = [
+                instrument
+                for instrument in midi_obj.instruments
+                if instrument.is_drum
+            ]
+
         start = 0
         end = 0
 
@@ -37,9 +47,7 @@ class SampleExtractor:
                 time_sig = self.get_time_signature_at_tick(
                     tick=end, time_signatures=midi_obj.time_signature_changes
                 )
-                fourths_per_bar = time_sig.numerator / (
-                    time_sig.denominator / 4
-                )
+                fourths_per_bar = time_sig.numerator / (time_sig.denominator / 4)
                 end += fourths_per_bar * midi_obj.ticks_per_beat
 
             stream = io.BytesIO()
@@ -64,9 +72,5 @@ class SampleExtractor:
 
     def get_number_of_notes(self, midi_obj: MidiFile) -> int:
         return len(
-            [
-                note
-                for instrument in midi_obj.instruments
-                for note in instrument
-            ]
+            [note for instrument in midi_obj.instruments for note in instrument]
         )

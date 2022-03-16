@@ -27,7 +27,7 @@ class TokenizedSample:
     file_path: Path
     start: int
     end: int
-    tokens: List[int]
+    tokens: List[List[int]]
 
 
 @dataclass
@@ -59,9 +59,7 @@ class DrumSampleDataset(Dataset):
         self.filter_out_empty_samples = filter_out_empty_samples
 
         self.samples: Optional[List[RawSample]] = None
-        self.sample_extractor = SampleExtractor(
-            bars_per_sample=bars_per_sample
-        )
+        self.sample_extractor = SampleExtractor(bars_per_sample=bars_per_sample)
 
         self.tokenizer = Octuple(nb_velocities=8)
 
@@ -91,7 +89,9 @@ class DrumSampleDataset(Dataset):
             # and one different-song pair
             return len(self.samples) * 2
 
-    def __getitem__(self, item) -> Union[TokenizedSample, TokenizedSamplePair]:
+    def __getitem__(
+        self, item
+    ) -> Optional[Union[TokenizedSample, TokenizedSamplePair]]:
         if self.samples is None:
             logger.warning(
                 "Please run DrumSampleDataset.prepare_samples first "
@@ -105,7 +105,7 @@ class DrumSampleDataset(Dataset):
                 file_path=sample.file_path,
                 start=sample.start,
                 end=sample.end,
-                tokens=self.tokenizer.midi_to_tokens(sample.midi)[0],
+                tokens=self.tokenizer.midi_to_tokens(sample.midi),
             )
         else:
             sample_a = self.samples[item // 2]
@@ -114,8 +114,7 @@ class DrumSampleDataset(Dataset):
                 sample_b_idx = (item // 2) + 1
                 if (
                     sample_b_idx >= len(self)
-                    or self.samples[sample_b_idx].file_path
-                    != sample_a.file_path
+                    or self.samples[sample_b_idx].file_path != sample_a.file_path
                 ):
                     sample_b_idx = (item // 2) - 1
 
@@ -123,9 +122,7 @@ class DrumSampleDataset(Dataset):
                 if sample_a.file_path == sample_b.file_path:
                     distance = 0
             else:
-                sample_b = self.samples[
-                    int((item + (len(self) / 2)) % len(self))
-                ]
+                sample_b = self.samples[int((item + (len(self) / 2)) % len(self))]
 
             return TokenizedSamplePair(
                 sample_a=TokenizedSample(

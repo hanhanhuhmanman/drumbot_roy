@@ -6,20 +6,12 @@ from typing import List, Optional, Union
 
 from miditok import Octuple
 from torch.utils.data import Dataset
-from miditoolkit.midi import parser as midi_parser
 from tqdm.auto import tqdm
 
+from drumbot_roy.training.sample_extractor import RawSample
 from src.drumbot_roy.training.sample_extractor import SampleExtractor
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class RawSample:
-    file_path: Path
-    start: int
-    end: int
-    midi: midi_parser.MidiFile
 
 
 @dataclass
@@ -46,7 +38,7 @@ class DrumSampleDataset(Dataset):
         filter_out_empty_samples: bool = True,
         shuffle_files: bool = True,
         shuffle_seed: int = 42,
-        only_drum: bool = True
+        only_drum: bool = True,
     ) -> None:
         self.midi_file_paths = list(input_dir.rglob("*.mid")) + list(
             input_dir.rglob("*.midi")
@@ -68,8 +60,7 @@ class DrumSampleDataset(Dataset):
     def prepare_samples(self):
         for midi_file_path in tqdm(self.midi_file_paths):
             for sample in self.sample_extractor.extract_samples(
-                midi_file_path=midi_file_path,
-                only_drum=self.only_drum
+                midi_file_path=midi_file_path, only_drum=self.only_drum
             ):
                 number_of_notes = self.sample_extractor.get_number_of_notes(
                     midi_obj=sample.midi

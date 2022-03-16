@@ -1,15 +1,23 @@
 import io
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Generator
 
 import miditoolkit.midi.parser as midi_parser
+from miditoolkit.midi import parser as midi_parser
 from miditoolkit.midi.parser import MidiFile
 from miditoolkit.midi.containers import TimeSignature, Instrument
 
-from src.drumbot_roy.training.drum_sample_dataset import RawSample
-
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class RawSample:
+    file_path: Path
+    start: int
+    end: int
+    midi: midi_parser.MidiFile
 
 
 class SampleExtractor:
@@ -39,6 +47,9 @@ class SampleExtractor:
                 if instrument.is_drum
             ]
 
+        if len(midi_obj.instruments) == 0:
+            return None
+
         start = 0
         end = 0
 
@@ -47,16 +58,21 @@ class SampleExtractor:
                 time_sig = self.get_time_signature_at_tick(
                     tick=end, time_signatures=midi_obj.time_signature_changes
                 )
+                if not time_sig:
+                    return None
                 fourths_per_bar = time_sig.numerator / (time_sig.denominator / 4)
-                end += fourths_per_bar * midi_obj.ticks_per_beat
+                end += int(fourths_per_bar * midi_obj.ticks_per_beat)
 
-            stream = io.BytesIO()
-            midi_obj.dump(file=stream, segment=(start, end))
-            stream.seek(0)
-            sample = midi_parser.MidiFile(file=stream)
-            yield RawSample(
-                file_path=midi_file_path, start=start, end=end, midi=sample
-            )
+            try:
+                stream = io.BytesIO()
+                midi_obj.dump(file=stream, segment=(start, end))
+                stream.seek(0)
+                sample = midi_parser.MidiFile(file=stream)
+                yield RawSample(
+                    file_path=midi_file_path, start=start, end=end, midi=sample
+                )
+            except Exception as exception:
+                logger.warning(exception)
 
             start = end
 
@@ -68,9 +84,12 @@ class SampleExtractor:
         time_sig_at_tick = time_signatures[0]
         for time_sig in time_signatures[1:]:
             if tick >= time_sig.time:
-                return time_sig_at_tick
+                time_sig_at_tick = time_sig
+            else:
+                break
+        return time_sig_at_tick
 
     def get_number_of_notes(self, midi_obj: MidiFile) -> int:
         return len(
-            [note for instrument in midi_obj.instruments for note in instrument]
+            [note for instrument in midi_obj.instruments for note in instrument.notes]
         )

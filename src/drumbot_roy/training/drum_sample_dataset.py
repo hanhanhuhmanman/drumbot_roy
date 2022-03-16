@@ -46,6 +46,7 @@ class DrumSampleDataset(Dataset):
         filter_out_empty_samples: bool = True,
         shuffle_files: bool = True,
         shuffle_seed: int = 42,
+        only_drum: bool = True
     ) -> None:
         self.midi_file_paths = list(input_dir.rglob("*.mid")) + list(
             input_dir.rglob("*.midi")
@@ -57,6 +58,7 @@ class DrumSampleDataset(Dataset):
 
         self.paired = paired
         self.filter_out_empty_samples = filter_out_empty_samples
+        self.only_drum = only_drum
 
         self.samples: Optional[List[RawSample]] = None
         self.sample_extractor = SampleExtractor(bars_per_sample=bars_per_sample)
@@ -66,7 +68,8 @@ class DrumSampleDataset(Dataset):
     def prepare_samples(self):
         for midi_file_path in tqdm(self.midi_file_paths):
             for sample in self.sample_extractor.extract_samples(
-                midi_file_path=midi_file_path
+                midi_file_path=midi_file_path,
+                only_drum=self.only_drum
             ):
                 number_of_notes = self.sample_extractor.get_number_of_notes(
                     midi_obj=sample.midi

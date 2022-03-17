@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Union
 
-from miditok import Octuple
+from miditok import OctupleMono
 from torch.utils.data import Dataset
 from tqdm.auto import tqdm
 
@@ -34,17 +34,21 @@ class DrumSampleDataset(Dataset):
         self,
         input_dir: Path,
         bars_per_sample: int,
+        max_files: Optional[int] = None,
         paired: bool = False,
         filter_out_empty_samples: bool = True,
         shuffle_files: bool = True,
         shuffle_seed: int = 42,
         only_drum: bool = True,
     ) -> None:
+        random.seed(shuffle_seed)
+
         self.midi_file_paths = list(input_dir.rglob("*.mid")) + list(
             input_dir.rglob("*.midi")
         )
 
-        random.seed(shuffle_seed)
+        if max_files is not None:
+            self.midi_file_paths = random.sample(self.midi_file_paths, max_files)
         if shuffle_files:
             random.shuffle(self.midi_file_paths)
 
@@ -52,12 +56,13 @@ class DrumSampleDataset(Dataset):
         self.filter_out_empty_samples = filter_out_empty_samples
         self.only_drum = only_drum
 
-        self.samples: Optional[List[RawSample]] = None
+        self.samples = None
         self.sample_extractor = SampleExtractor(bars_per_sample=bars_per_sample)
 
-        self.tokenizer = Octuple(nb_velocities=8)
+        self.tokenizer = OctupleMono(nb_velocities=8, sos_eos_tokens=True)
 
     def prepare_samples(self):
+        self.samples = []
         for midi_file_path in tqdm(self.midi_file_paths):
             for sample in self.sample_extractor.extract_samples(
                 midi_file_path=midi_file_path, only_drum=self.only_drum
